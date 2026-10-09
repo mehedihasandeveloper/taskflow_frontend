@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { apiFetch, clearToken, getToken } from "@/lib/api";
 
 export type User = { id: string; name: string; email: string; avatar?: string };
-type AuthContextValue = { user: User; logout: () => void };
+type AuthContextValue = { user: User; logout: () => void; updateUser: (user: User) => void };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -45,5 +45,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  return <AuthContext.Provider value={{ user, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, logout, updateUser: setUser }}>{children}</AuthContext.Provider>;
 }

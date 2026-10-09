@@ -18,7 +18,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
       <div className="ml-auto flex items-center gap-4">
         <button aria-label="Notifications" className="text-slate-500 hover:text-slate-800"><Bell size={18} /></button>
         <div className="flex items-center gap-2">
-          <Avatar name={user.name} />
+          <Avatar name={user.name} src={user.avatar} />
           <span className="hidden text-sm font-medium text-slate-700 sm:block">{user.name}</span>
         </div>
       </div>
