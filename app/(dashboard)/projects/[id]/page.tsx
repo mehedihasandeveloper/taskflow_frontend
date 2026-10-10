@@ -20,6 +20,7 @@ import { Member, Project, ProjectInput } from "@/lib/types";
 import { Task, TaskInput, TaskStatus } from "@/lib/taskTypes";
 import { addProjectMember, getProjectMembers, removeProjectMember } from "@/lib/teamApi";
 import TaskBoard from "@/components/tasks/TaskBoard";
+import ProjectSummary from "@/components/projects/ProjectSummary";
 
 type ModalState =
   | { type: "editProject" }
@@ -187,6 +188,8 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
       </section>
+
+      <ProjectSummary projectId={id} />
 
       <MembersPanel
         projectId={id}
