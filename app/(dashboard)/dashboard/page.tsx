@@ -7,7 +7,7 @@ import RecentProjects from "@/components/dashboard/RecentProjects";
 import RecentTasks from "@/components/dashboard/RecentTasks";
 import TaskCompletion from "@/components/dashboard/TaskCompletion";
 import QuickActions from "@/components/dashboard/QuickActions";
-import CreateTaskModal from "@/components/dashboard/CreateTaskModal";
+import CreateTaskModal from "@/components/tasks/CreateTaskModal";
 import ProjectForm from "@/components/projects/ProjectForm";
 import { useAuth } from "@/context/AuthContext";
 import { DashboardData, getDashboard } from "@/lib/dashboardApi";

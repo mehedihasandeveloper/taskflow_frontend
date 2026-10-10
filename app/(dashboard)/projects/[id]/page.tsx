@@ -8,14 +8,18 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import SubmitButton from "@/components/ui/SubmitButton";
 import ProjectForm from "@/components/projects/ProjectForm";
-import TaskBoard from "@/components/tasks/TaskBoard";
-import TaskForm from "@/components/tasks/TaskForm";
+import MembersPanel from "@/components/team/MembersPanel";
+
+import TaskFormModal from "@/components/tasks/TaskFormModal";
 import { ApiRequestError } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { getProject, updateProject } from "@/lib/projectsApi";
+
 import { createTask, deleteTask, listTasks, updateTask } from "@/lib/tasksApi";
-import { Project, ProjectInput } from "@/lib/types";
+import { Member, Project, ProjectInput } from "@/lib/types";
 import { Task, TaskInput, TaskStatus } from "@/lib/taskTypes";
+import { addProjectMember, getProjectMembers, removeProjectMember } from "@/lib/teamApi";
+import TaskBoard from "@/components/tasks/TaskBoard";
 
 type ModalState =
   | { type: "editProject" }
@@ -28,6 +32,7 @@ export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [team, setTeam] = useState<{ owner: Member; members: Member[] } | null>(null);
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
   const [actionError, setActionError] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
@@ -35,11 +40,12 @@ export default function ProjectDetailsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getProject(id), listTasks(id)])
-      .then(([p, t]) => {
+    Promise.all([getProject(id), listTasks(id), getProjectMembers(id)])
+      .then(([p, t, m]) => {
         if (cancelled) return;
         setProject(p.project);
         setTasks(t);
+        setTeam(m);
       })
       .catch((e) => {
         if (cancelled) return;
@@ -96,6 +102,17 @@ export default function ProjectDetailsPage() {
     }
   }
 
+  async function addMember(email: string) {
+    const member = await addProjectMember(id, email);
+    setTeam((t) => t && { ...t, members: [...t.members, member] });
+  }
+
+  async function removeMember(member: Member) {
+    await removeProjectMember(id, member.id);
+    setTeam((t) => t && { ...t, members: t.members.filter((m) => m.id !== member.id) });
+    setTasks((ts) => ts!.map((t) => (t.assignee?.id === member.id ? { ...t, assignee: null } : t)));
+  }
+
   const back = (
     <Link href="/projects" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600">
       <ArrowLeft size={16} /> Back to projects
@@ -107,13 +124,13 @@ export default function ProjectDetailsPage() {
       <div className="mx-auto max-w-3xl space-y-4">
         {back}
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
-          {error.status === 404 || error.status === 400 ? "This project doesn't exist or was deleted." : error.message}
+          {error.status === 404 || error.status === 400 ? "This project doesn't exist or you don't have access to it." : error.message}
         </div>
       </div>
     );
   }
 
-  if (!project || !tasks) {
+  if (!project || !tasks || !team) {
     return (
       <div className="mx-auto max-w-7xl space-y-4">
         <div className="h-32 animate-pulse rounded-xl bg-slate-200/70" />
@@ -124,6 +141,8 @@ export default function ProjectDetailsPage() {
     );
   }
 
+  const isOwner = project.role === "owner";
+  const assignable = [team.owner, ...team.members];
   const completed = tasks.filter((t) => t.status === "Completed").length;
   const percent = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
   const addTaskButton = (
@@ -142,6 +161,7 @@ export default function ProjectDetailsPage() {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-900">{project.name}</h1>
               <Badge label={project.status} />
+              {!isOwner && <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600">Shared with you</span>}
             </div>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">{project.description || "No description"}</p>
             <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
@@ -150,9 +170,11 @@ export default function ProjectDetailsPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setModal({ type: "editProject" })} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              <Pencil size={14} /> Edit
-            </button>
+            {isOwner && (
+              <button onClick={() => setModal({ type: "editProject" })} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <Pencil size={14} /> Edit
+              </button>
+            )}
             {addTaskButton}
           </div>
         </div>
@@ -165,6 +187,16 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
       </section>
+
+      <MembersPanel
+        projectId={id}
+        projectName={project.name}
+        owner={team.owner}
+        members={team.members}
+        isOwner={isOwner}
+        onAdd={addMember}
+        onRemove={removeMember}
+      />
 
       {actionError && (
         <div role="alert" className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
@@ -182,9 +214,14 @@ export default function ProjectDetailsPage() {
       <Modal open={modal?.type === "editProject"} title="Edit project" onClose={close}>
         <ProjectForm project={project} onSubmit={saveProject} onCancel={close} />
       </Modal>
-      <Modal open={modal?.type === "createTask" || modal?.type === "editTask"} title={modal?.type === "editTask" ? "Edit task" : "Create task"} onClose={close}>
-        <TaskForm task={modal?.type === "editTask" ? modal.task : undefined} onSubmit={saveTask} onCancel={close} />
-      </Modal>
+      <TaskFormModal
+        open={modal?.type === "createTask" || modal?.type === "editTask"}
+        projectId={id}
+        members={assignable}
+        task={modal?.type === "editTask" ? modal.task : undefined}
+        onClose={close}
+        onSubmit={saveTask}
+      />
       <Modal open={modal?.type === "deleteTask"} title="Delete task" onClose={close}>
         <p className="text-sm text-slate-600">Delete <b>{modal?.type === "deleteTask" ? modal.task.title : ""}</b>? This cannot be undone.</p>
         <div className="mt-6 flex justify-end gap-3">

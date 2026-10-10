@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderKanban, CheckSquare, Calendar, Users, Settings, LogOut, X } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CheckSquare, Users, Settings, LogOut, X } from "lucide-react";
 import Logo from "../Logo";
 import Avatar from "../Avatar";
 import { useAuth } from "@/context/AuthContext";
@@ -10,7 +10,6 @@ const items = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Projects", href: "/projects", icon: FolderKanban },
   { label: "Tasks", href: "/tasks", icon: CheckSquare },
-  { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Team", href: "/team", icon: Users },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

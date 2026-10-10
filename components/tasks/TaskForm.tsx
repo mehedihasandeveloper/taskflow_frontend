@@ -1,21 +1,29 @@
 "use client";
 import { FormEvent, useState } from "react";
 import { Task, TASK_PRIORITIES, TASK_STATUSES, TaskInput } from "@/lib/taskTypes";
+import { Member } from "@/lib/types";
 import { validateTask } from "@/lib/taskValidation";
 import SubmitButton from "../ui/SubmitButton";
 import FormError from "../auth/FormError";
 
-type Props = { task?: Task; onSubmit: (v: TaskInput) => Promise<void>; onCancel: () => void };
+type Props = {
+  task?: Task;
+  /** People who can be assigned (project owner + members). Hides the assignee field when empty. */
+  members?: Member[];
+  onSubmit: (v: TaskInput) => Promise<void>;
+  onCancel: () => void;
+};
 
 const field = "w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
-export default function TaskForm({ task, onSubmit, onCancel }: Props) {
+export default function TaskForm({ task, members = [], onSubmit, onCancel }: Props) {
   const [values, setValues] = useState<TaskInput>({
     title: task?.title ?? "",
     description: task?.description ?? "",
     status: task?.status ?? "Todo",
     priority: task?.priority ?? "Medium",
     dueDate: task?.dueDate ? task.dueDate.slice(0, 10) : "",
+    assignee: task?.assignee?.id ?? "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof TaskInput, string>>>({});
   const [serverError, setServerError] = useState("");
@@ -66,9 +74,20 @@ export default function TaskForm({ task, onSubmit, onCancel }: Props) {
           </select>
         </div>
       </div>
-      <div>
-        <label htmlFor="dueDate" className="mb-1.5 block text-sm font-medium">Due date</label>
-        <input id="dueDate" type="date" className={field} value={values.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="dueDate" className="mb-1.5 block text-sm font-medium">Due date</label>
+          <input id="dueDate" type="date" className={field} value={values.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+        </div>
+        {members.length > 0 && (
+          <div>
+            <label htmlFor="assignee" className="mb-1.5 block text-sm font-medium">Assignee</label>
+            <select id="assignee" className={field} value={values.assignee} onChange={(e) => set("assignee", e.target.value)}>
+              <option value="">Unassigned</option>
+              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+          </div>
+        )}
       </div>
       <div className="flex justify-end gap-3 pt-2">
         <button type="button" onClick={onCancel} className="rounded-lg border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>

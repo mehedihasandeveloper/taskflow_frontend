@@ -1,4 +1,5 @@
 import { Calendar, Pencil, Trash2 } from "lucide-react";
+import Avatar from "../Avatar";
 import Badge from "../Badge";
 import { formatDate, isOverdue } from "@/lib/format";
 import { Task, TASK_STATUSES, TaskStatus } from "@/lib/taskTypes";
@@ -21,11 +22,18 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusChange }: Pro
         <Badge label={task.priority} />
       </div>
       {task.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{task.description}</p>}
-      {task.dueDate && (
-        <p className={`mt-2 flex items-center gap-1.5 text-xs ${overdue ? "font-medium text-red-600" : "text-slate-500"}`}>
-          <Calendar size={12} /> {formatDate(task.dueDate)}{overdue && " · Overdue"}
-        </p>
-      )}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        {task.dueDate ? (
+          <p className={`flex items-center gap-1.5 text-xs ${overdue ? "font-medium text-red-600" : "text-slate-500"}`}>
+            <Calendar size={12} /> {formatDate(task.dueDate)}{overdue && " · Overdue"}
+          </p>
+        ) : <span />}
+        {task.assignee && (
+          <p className="flex items-center gap-1.5 text-xs text-slate-600" title={`Assigned to ${task.assignee.name}`}>
+            <Avatar name={task.assignee.name} size={18} /> {task.assignee.name.split(" ")[0]}
+          </p>
+        )}
+      </div>
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
         <select
           aria-label={`Change status of ${task.title}`}
